@@ -1,0 +1,36 @@
+@AccessControl.authorizationCheck: #NOT_REQUIRED
+@EndUserText.label: 'Consumption view of payroll table'
+@Metadata.ignorePropagatedAnnotations: true
+define root view entity zc_ai_payroll
+  provider contract transactional_query
+  as projection on zai_i_payroll
+{
+  key PayrollId,
+      EmployeeId,
+      PayrollMonth,
+      Currency,
+      @Semantics.amount.currencyCode: 'Currency'
+      BasicSalary,
+      @Semantics.amount.currencyCode: 'Currency'
+      Allowance,
+      @Semantics.amount.currencyCode: 'Currency'
+      GrossSalary,
+      @Semantics.amount.currencyCode: 'Currency'
+      Tax,
+      @Semantics.amount.currencyCode: 'Currency'
+      Pf,
+      @Semantics.amount.currencyCode: 'Currency'
+      LopDeduction,
+      @Semantics.amount.currencyCode: 'Currency'
+      OtherDeduction,
+      @Semantics.amount.currencyCode: 'Currency'
+      TotalDeduction,
+      @Semantics.amount.currencyCode: 'Currency'
+      NetSalary,
+      CreatedBy,
+      CreatedOn,
+      LastChangedBy,
+      LastChangedAt,
+      /* Associations */
+      _emp
+}
