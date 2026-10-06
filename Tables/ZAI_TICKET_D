@@ -1,0 +1,23 @@
+@EndUserText.label : 'AI HR Helpdesk Ticket Table for Draft'
+@AbapCatalog.enhancement.category : #EXTENSIBLE_ANY
+@AbapCatalog.tableCategory : #TRANSPARENT
+@AbapCatalog.deliveryClass : #A
+@AbapCatalog.dataMaintenance : #RESTRICTED
+define table zai_ticket_d {
+
+  key mandt     : mandt not null;
+  key ticketid  : sysuuid_x16 not null;
+  employeeid    : abap.int4;
+  question      : abap.char(1000);
+  category      : abap.char(40);
+  priority      : abap.char(10);
+  aisummary     : abap.char(1000);
+  airesponse    : abap.char(1000);
+  status        : abap.char(20);
+  createdby     : abp_creation_user;
+  createdon     : abp_creation_tstmpl;
+  lastchangedby : abp_creation_user;
+  lastchangedat : abp_creation_tstmpl;
+  "%admin"      : include sych_bdl_draft_admin_inc;
+
+}
