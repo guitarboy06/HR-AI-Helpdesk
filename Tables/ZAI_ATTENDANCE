@@ -1,0 +1,22 @@
+@EndUserText.label : 'Employee Attendance Table'
+@AbapCatalog.enhancement.category : #NOT_EXTENSIBLE
+@AbapCatalog.tableCategory : #TRANSPARENT
+@AbapCatalog.deliveryClass : #A
+@AbapCatalog.dataMaintenance : #RESTRICTED
+define table zai_attendance {
+
+  key client        : abap.clnt not null;
+  key attendance_id : sysuuid_x16 not null;
+  employee_id       : abap.int4 not null;
+  attendance_month  : abap.char(7);
+  working_days      : abap.int4;
+  present_days      : abap.int4;
+  absent_days       : abap.int4;
+  lop_days          : abap.int4;
+  overtime_hours    : abap.dec(10,2);
+  created_by        : abp_creation_user;
+  created_on        : abp_creation_tstmpl;
+  last_changed_by   : abp_creation_user;
+  last_changed_at   : abp_creation_tstmpl;
+
+}
