@@ -1,0 +1,22 @@
+@AccessControl.authorizationCheck: #NOT_REQUIRED
+@EndUserText.label: 'Consumption view of attendance table'
+@Metadata.ignorePropagatedAnnotations: true
+define root view entity zc_ai_attendance
+  provider contract transactional_query
+  as projection on zai_i_attendance
+{
+  key AttendanceId,
+      EmployeeId,
+      AttendanceMonth,
+      WorkingDays,
+      PresentDays,
+      AbsentDays,
+      LopDays,
+      OvertimeHours,
+      CreatedBy,
+      CreatedOn,
+      LastChangedBy,
+      LastChangedAt,
+      /* Associations */
+      _emp
+}
