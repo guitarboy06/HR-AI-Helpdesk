@@ -1,0 +1,23 @@
+@AbapCatalog.viewEnhancementCategory: [#NONE]
+@AccessControl.authorizationCheck: #NOT_REQUIRED
+@EndUserText.label: 'Interface view for hr helpdesk table'
+@Metadata.ignorePropagatedAnnotations: true
+define root view entity zai_i_hr_helpdesk
+  as select from zai_ticket
+  association [1..1] to zai_i_employee as _emp on $projection.EmployeeId = _emp.EmployeeId
+{
+  key ticket_id       as TicketId,
+      employee_id     as EmployeeId,
+      question        as Question,
+      category        as Category,
+      priority        as Priority,
+      ai_summary      as AiSummary,
+      ai_response     as AiResponse,
+      status          as Status,
+      created_by      as CreatedBy,
+      created_on      as CreatedOn,
+      last_changed_by as LastChangedBy,
+      @Semantics.systemDateTime.localInstanceLastChangedAt: true
+      last_changed_at as LastChangedAt,
+      _emp
+}
