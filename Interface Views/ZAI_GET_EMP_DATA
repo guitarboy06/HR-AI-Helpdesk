@@ -1,0 +1,126 @@
+@AbapCatalog.viewEnhancementCategory: [#NONE]
+@AccessControl.authorizationCheck: #NOT_REQUIRED
+@EndUserText.label: 'Emp response view to send data to AI'
+@Metadata.ignorePropagatedAnnotations: true
+define view entity zai_get_emp_data
+  with parameters
+    p_pay    : abap.char( 1 ),
+    p_leave  : abap.char( 1 ),
+    p_attend : abap.char(1),
+    p_period : abap.char(7)
+  as select from zai_i_employee
+  association [0..*] to zai_i_payroll    as _pay    on  $projection.EmployeeId = _pay.EmployeeId
+                                                    and _pay.PayrollMonth      = $parameters.p_period
+  association [0..*] to zai_i_leave      as _leave  on  $projection.EmployeeId = _leave.EmployeeId
+                                                    and _leave.LeaveMonth      = $parameters.p_period
+  association [0..*] to zai_i_attendance as _attend on  $projection.EmployeeId  = _attend.EmployeeId
+                                                    and _attend.AttendanceMonth = $parameters.p_period
+{
+  key EmployeeId,
+      Department  as Department,
+      Designation as Designation,
+      JoiningDate,
+      Currency,
+      @Semantics.amount.currencyCode: 'Currency'
+      BasicSalary,
+      /* Associations */
+      //    _attend,
+      //      case $parameters.p_attend
+      //          when 'X' then _attend.AttendanceId
+      //          else ''
+      //      end         as attendanceId,
+
+      case $parameters.p_attend
+          when 'X' then _attend.AttendanceMonth
+          else ' '
+      end         as attendanceMonth,
+
+      case $parameters.p_attend
+          when 'X' then _attend.WorkingDays
+          else 0
+      end         as workingDays,
+
+      case $parameters.p_attend
+          when 'X' then _attend.PresentDays
+          else 0
+      end         as presentDays,
+
+      case $parameters.p_attend
+          when 'X' then _attend.AbsentDays
+          else 0
+      end         as absentDays,
+
+      case $parameters.p_attend
+          when 'X' then _attend.LopDays
+          else 0
+      end         as attendlopDays,
+
+      case $parameters.p_leave
+          when 'X' then _leave.LeaveMonth
+          else ' '
+      end         as leaveMonth,
+
+      case $parameters.p_leave
+         when 'X' then _leave.TotalDays
+         else 0
+      end         as totalDays,
+
+      case $parameters.p_leave
+          when 'X' then _leave.LopDays
+          else 0
+      end         as leavelopDays,
+
+      case $parameters.p_pay
+          when 'X' then _pay.PayrollMonth
+          else ' '
+      end         as payrollMonth,
+
+      @Semantics.amount.currencyCode: 'Currency'
+      case $parameters.p_pay
+          when 'X' then _pay.Allowance
+          else cast( 0 as abap.curr(16,2))
+      end         as allowance,
+
+      @Semantics.amount.currencyCode: 'Currency'
+      case $parameters.p_pay
+          when 'X' then _pay.GrossSalary
+          else cast( 0 as abap.curr(16,2))
+      end         as grossSalary,
+
+      @Semantics.amount.currencyCode: 'Currency'
+      case $parameters.p_pay
+          when 'X' then _pay.Tax
+          else cast( 0 as abap.curr(16,2))
+      end         as tax,
+
+      @Semantics.amount.currencyCode: 'Currency'
+      case $parameters.p_pay
+          when 'X' then _pay.Pf
+          else cast( 0 as abap.curr(16,2))
+      end         as pf,
+
+      @Semantics.amount.currencyCode: 'Currency'
+      case $parameters.p_pay
+          when 'X' then _pay.LopDeduction
+          else cast( 0 as abap.curr(16,2))
+      end         as lopDeduction,
+
+      @Semantics.amount.currencyCode: 'Currency'
+      case $parameters.p_pay
+          when 'X' then _pay.OtherDeduction
+          else cast( 0 as abap.curr(16,2))
+      end         as otherDeduction,
+
+      @Semantics.amount.currencyCode: 'Currency'
+      case $parameters.p_pay
+          when 'X' then _pay.TotalDeduction
+          else cast( 0 as abap.curr(16,2))
+      end         as totalDeduction,
+
+      @Semantics.amount.currencyCode: 'Currency'
+      case $parameters.p_pay
+          when 'X' then _pay.NetSalary
+          else cast( 0 as abap.curr(16,2))
+      end         as netSalary
+
+}
