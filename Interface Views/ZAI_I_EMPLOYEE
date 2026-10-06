@@ -1,0 +1,26 @@
+@AbapCatalog.viewEnhancementCategory: [#NONE]
+@AccessControl.authorizationCheck: #NOT_REQUIRED
+@EndUserText.label: 'Interface view for employee table'
+@Metadata.ignorePropagatedAnnotations: true
+define root view entity zai_i_employee
+  as select from zai_employee
+  association [0..*] to zai_i_payroll    as _pay    on $projection.EmployeeId = _pay.EmployeeId
+  association [0..*] to zai_i_leave      as _leave  on $projection.EmployeeId = _leave.EmployeeId
+  association [0..*] to zai_i_attendance as _attend on $projection.EmployeeId = _attend.EmployeeId
+{
+  key employee_id     as EmployeeId,
+      employee_name   as EmployeeName,
+      department      as Department,
+      designation     as Designation,
+      joining_date    as JoiningDate,
+      currency        as Currency,
+      @Semantics.amount.currencyCode: 'Currency'
+      basic_salary    as BasicSalary,
+      created_by      as CreatedBy,
+      created_on      as CreatedOn,
+      last_changed_by as LastChangedBy,
+      last_changed_at as LastChangedAt,
+      _pay,
+      _leave,
+      _attend
+}
