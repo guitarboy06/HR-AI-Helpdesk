@@ -1,0 +1,20 @@
+@AccessControl.authorizationCheck: #NOT_REQUIRED
+@EndUserText.label: 'Consumption view of leave table'
+@Metadata.ignorePropagatedAnnotations: true
+define root view entity zc_ai_leave
+  provider contract transactional_query
+  as projection on zai_i_leave
+{
+  key LeaveId,
+      EmployeeId,
+      LeaveMonth,
+      LeaveTypeCode,
+      TotalDays,
+      LopDays,
+      CreatedBy,
+      CreatedOn,
+      LastChangedBy,
+      LastChangedAt,
+      /* Associations */
+      _emp
+}
