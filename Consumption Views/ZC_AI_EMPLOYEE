@@ -1,0 +1,25 @@
+@AccessControl.authorizationCheck: #NOT_REQUIRED
+@EndUserText.label: 'Consumption view of employee table'
+@Metadata.ignorePropagatedAnnotations: true
+define root view entity zc_ai_employee
+  provider contract transactional_query
+  as projection on zai_i_employee
+
+{
+  key EmployeeId,
+      EmployeeName,
+      Department,
+      Designation,
+      JoiningDate,
+      Currency,
+      @Semantics.amount.currencyCode: 'Currency'
+      BasicSalary,
+      CreatedBy,
+      CreatedOn,
+      LastChangedBy,
+      LastChangedAt,
+      /* Associations */
+      _attend,
+      _leave,
+      _pay
+}
