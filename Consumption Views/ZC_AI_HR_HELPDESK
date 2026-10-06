@@ -1,0 +1,74 @@
+@AccessControl.authorizationCheck: #NOT_REQUIRED
+@EndUserText.label: 'Consumption view of ticket table'
+@Metadata.ignorePropagatedAnnotations: true
+@Metadata.allowExtensions: false
+@UI.headerInfo: {
+    typeName: 'Ticket',
+    typeNamePlural: 'Tickets',
+    title: {
+        type: #STANDARD,
+        value: 'TicketId'
+    }
+}
+@UI.createHidden: false
+define root view entity zc_ai_hr_helpdesk
+  provider contract transactional_query
+  as projection on zai_i_hr_helpdesk
+{
+      @UI.facet: [{
+                id: 'GeneralInfo',
+                purpose: #STANDARD,
+                position: 10,
+                label: 'General Information',
+                type: #IDENTIFICATION_REFERENCE
+            },
+      {
+      id: 'AiAnalysis',
+      purpose: #STANDARD,
+      type: #FIELDGROUP_REFERENCE,
+      label: 'AI Analysis',
+      targetQualifier: 'AI_ANALYSIS',
+      position: 20
+      }]
+      @UI.lineItem: [{ position: 10, value: 'TicketId' },
+      { type:#FOR_ACTION, dataAction: 'analyzeWithAI', label: 'Analyze With AI' } ]
+  key TicketId,
+      @UI.lineItem: [{ position: 20, value: 'EmployeeId' }]
+      @UI.identification: [{ position: 10, label: 'Employee Id' }]
+      EmployeeId,
+      @UI.lineItem: [{ position: 30, value: 'Question' }]
+      @UI.identification: [{ position: 20, label: 'Question' }]
+      Question,
+      @Consumption.valueHelpDefinition: [{ entity: {
+          name: 'ZF4_I_CATEGORY',
+          element: 'CategoryType'
+      } }]
+      @UI.lineItem: [{ position: 40, value: 'Category' }]
+      @UI.identification: [{ position: 30, label: 'Category' }]
+      Category,
+      @UI.lineItem: [{ position: 50, value: 'Priority' }]
+      @UI.identification: [{ position: 40, label: 'Priority' }]
+      @Consumption.valueHelpDefinition: [{ entity: {
+          name: 'ZF4_I_PRIORITY',
+          element: 'Priority'
+      } }]
+      Priority,
+      @UI.lineItem: [{ position: 60, value: 'AiSummary' }]
+      AiSummary,
+      //      @UI.lineItem: [{ position: 70, value: 'AiResponse' }]
+      @UI.fieldGroup: [{ qualifier: 'AI_ANALYSIS', position: 10, label: 'AI Analysis' }]
+      @UI.hidden: #( HasActiveEntity )
+      AiResponse,
+      @UI.lineItem: [{ position: 80, value: 'Status' }]
+      Status,
+      //      @UI.lineItem: [{ position: 90, value: 'CreatedBy' }]
+      CreatedBy,
+      //      @UI.lineItem: [{ position: 100, value: 'CreatedOn' }]
+      CreatedOn,
+      //      @UI.lineItem: [{ position: 110, value: 'LastChangedBy' }]
+      LastChangedBy,
+      //      @UI.lineItem: [{ position: 120, value: 'LastChangedAt' }]
+      LastChangedAt,
+      /* Associations */
+      _emp
+}
