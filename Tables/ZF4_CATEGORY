@@ -1,0 +1,12 @@
+@EndUserText.label : 'Category field F4'
+@AbapCatalog.enhancement.category : #NOT_EXTENSIBLE
+@AbapCatalog.tableCategory : #TRANSPARENT
+@AbapCatalog.deliveryClass : #A
+@AbapCatalog.dataMaintenance : #RESTRICTED
+define table zf4_category {
+
+  key client        : abap.clnt not null;
+  key sl_no         : abap.char(3) not null;
+  key category_type : abap.char(40) not null;
+
+}
