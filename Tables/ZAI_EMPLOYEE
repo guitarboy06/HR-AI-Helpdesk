@@ -1,0 +1,22 @@
+@EndUserText.label : 'Employee Master Table'
+@AbapCatalog.enhancement.category : #NOT_EXTENSIBLE
+@AbapCatalog.tableCategory : #TRANSPARENT
+@AbapCatalog.deliveryClass : #A
+@AbapCatalog.dataMaintenance : #RESTRICTED
+define table zai_employee {
+
+  key client      : abap.clnt not null;
+  key employee_id : abap.int4 not null;
+  employee_name   : abap.char(80) not null;
+  department      : abap.char(40);
+  designation     : abap.char(30);
+  joining_date    : abap.dats;
+  currency        : abap.cuky;
+  @Semantics.amount.currencyCode : 'zai_employee.currency'
+  basic_salary    : abap.curr(16,2);
+  created_by      : abp_creation_user;
+  created_on      : abp_creation_tstmpl;
+  last_changed_by : abp_creation_user;
+  last_changed_at : abp_creation_tstmpl;
+
+}
