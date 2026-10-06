@@ -1,0 +1,22 @@
+@AbapCatalog.viewEnhancementCategory: [#NONE]
+@AccessControl.authorizationCheck: #NOT_REQUIRED
+@EndUserText.label: 'Interface view for attendance table'
+@Metadata.ignorePropagatedAnnotations: true
+define root view entity zai_i_attendance
+  as select from zai_attendance
+  association [1..1] to zai_i_employee as _emp on $projection.EmployeeId = _emp.EmployeeId
+{
+  key attendance_id    as AttendanceId,
+      employee_id      as EmployeeId,
+      attendance_month as AttendanceMonth,
+      working_days     as WorkingDays,
+      present_days     as PresentDays,
+      absent_days      as AbsentDays,
+      lop_days         as LopDays,
+      overtime_hours   as OvertimeHours,
+      created_by       as CreatedBy,
+      created_on       as CreatedOn,
+      last_changed_by  as LastChangedBy,
+      last_changed_at  as LastChangedAt,
+      _emp
+}
