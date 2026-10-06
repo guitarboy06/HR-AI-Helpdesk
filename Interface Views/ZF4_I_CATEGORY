@@ -1,0 +1,11 @@
+@AbapCatalog.viewEnhancementCategory: [#NONE]
+@AccessControl.authorizationCheck: #NOT_REQUIRED
+@EndUserText.label: 'Category F4 interface view'
+@Metadata.ignorePropagatedAnnotations: true
+@ObjectModel.resultSet.sizeCategory: #XS
+define view entity zf4_i_category
+  as select from zf4_category
+{
+  key sl_no         as SlNo,
+  key category_type as CategoryType
+}
