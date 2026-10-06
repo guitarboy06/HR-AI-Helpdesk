@@ -1,0 +1,36 @@
+@AbapCatalog.viewEnhancementCategory: [#NONE]
+@AccessControl.authorizationCheck: #NOT_REQUIRED
+@EndUserText.label: 'Interface view for payroll table'
+@Metadata.ignorePropagatedAnnotations: true
+define root view entity zai_i_payroll
+  as select from zai_payroll
+  association [1..1] to zai_i_employee as _emp on $projection.EmployeeId = _emp.EmployeeId
+{
+  key payroll_id      as PayrollId,
+      employee_id     as EmployeeId,
+      payroll_month   as PayrollMonth,
+      _emp.Currency   as Currency,
+      @Semantics.amount.currencyCode: 'Currency'
+      basic_salary    as BasicSalary,
+      @Semantics.amount.currencyCode: 'Currency'
+      allowance       as Allowance,
+      @Semantics.amount.currencyCode: 'Currency'
+      gross_salary    as GrossSalary,
+      @Semantics.amount.currencyCode: 'Currency'
+      tax             as Tax,
+      @Semantics.amount.currencyCode: 'Currency'
+      pf              as Pf,
+      @Semantics.amount.currencyCode: 'Currency'
+      lop_deduction   as LopDeduction,
+      @Semantics.amount.currencyCode: 'Currency'
+      other_deduction as OtherDeduction,
+      @Semantics.amount.currencyCode: 'Currency'
+      total_deduction as TotalDeduction,
+      @Semantics.amount.currencyCode: 'Currency'
+      net_salary      as NetSalary,
+      created_by      as CreatedBy,
+      created_on      as CreatedOn,
+      last_changed_by as LastChangedBy,
+      last_changed_at as LastChangedAt,
+      _emp
+}
