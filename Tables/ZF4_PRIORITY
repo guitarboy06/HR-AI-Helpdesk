@@ -1,0 +1,12 @@
+@EndUserText.label : 'F4 for Priority field'
+@AbapCatalog.enhancement.category : #NOT_EXTENSIBLE
+@AbapCatalog.tableCategory : #TRANSPARENT
+@AbapCatalog.deliveryClass : #A
+@AbapCatalog.dataMaintenance : #RESTRICTED
+define table zf4_priority {
+
+  key client   : abap.clnt not null;
+  key sl_no    : abap.char(3) not null;
+  key priority : abap.char(10) not null;
+
+}
