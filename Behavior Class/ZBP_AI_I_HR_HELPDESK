@@ -1,0 +1,418 @@
+CLASS lhc_zai_i_hr_helpdesk DEFINITION INHERITING FROM cl_abap_behavior_handler.
+  PRIVATE SECTION.
+    TYPES: BEGIN OF ty_ticket_data,
+             ticket_id   TYPE string,
+             employee_id TYPE string,
+             category    TYPE string,
+             priority    TYPE string,
+             question    TYPE string,
+           END OF ty_ticket_data,
+
+           BEGIN OF ty_emp_data,
+             employee_id  TYPE string,
+             department   TYPE string,
+             designation  TYPE string,
+             joining_date TYPE string,
+           END OF ty_emp_data,
+
+           BEGIN OF ty_js_period,
+             period TYPE string,
+             role   TYPE string,
+           END OF ty_js_period,
+           tt_js_period TYPE STANDARD TABLE OF ty_js_period WITH EMPTY KEY,
+
+           BEGIN OF ty_context,
+             intent TYPE string,
+             period TYPE tt_js_period,
+           END OF ty_context,
+
+           BEGIN OF ty_pay_data,
+             period          TYPE string,
+             basic_salary    TYPE string,
+             allowance       TYPE string,
+             gross_salary    TYPE string,
+             tax             TYPE string,
+             pf              TYPE string,
+             lop_deduction   TYPE string,
+             other_deduction TYPE string,
+             total_deduction TYPE string,
+             net_salary      TYPE string,
+           END OF ty_pay_data,
+           tt_pay_data TYPE STANDARD TABLE OF ty_pay_data WITH EMPTY KEY,
+
+           BEGIN OF ty_leave_data,
+             period     TYPE string,
+             total_days TYPE string,
+             lop_days   TYPE string,
+           END OF ty_leave_data,
+           tt_leave_data TYPE STANDARD TABLE OF ty_leave_data WITH EMPTY KEY,
+
+           BEGIN OF ty_attend_data,
+             period       TYPE string,
+             working_days TYPE string,
+             present_days TYPE string,
+             absent_days  TYPE string,
+             lop_days     TYPE string,
+           END OF ty_attend_data,
+           tt_attend_data TYPE STANDARD TABLE OF ty_attend_data WITH EMPTY KEY,
+
+           BEGIN OF ty_ai_request,
+             analyze_type TYPE string,
+             ticket       TYPE ty_ticket_data,
+             context      TYPE ty_context,
+             employee     TYPE ty_emp_data,
+             payroll      TYPE tt_pay_data,
+             leave        TYPE tt_leave_data,
+             attendance   TYPE tt_attend_data,
+           END OF ty_ai_request,
+
+           BEGIN OF ty_response_json,
+             intent        TYPE string,
+             periods       TYPE tt_js_period,
+             required_data TYPE STANDARD TABLE OF string WITH EMPTY KEY,
+           END OF ty_response_json,
+
+           BEGIN OF ty_final_response,
+             intent   TYPE string,
+             analysis TYPE string,
+           END OF ty_final_response.
+
+    DATA: lt_ticket         TYPE TABLE FOR READ RESULT zai_i_hr_helpdesk,
+          ls_parsed_data    TYPE ty_response_json,
+          lt_period         TYPE TABLE OF ty_js_period WITH EMPTY KEY,
+          ls_final_response TYPE ty_final_response.
+
+    DATA: lv_emp_flag    TYPE abap_boolean,
+          lv_pay_flag    TYPE abap_boolean,
+          lv_leav_flag   TYPE abap_boolean,
+          lv_attend_flag TYPE abap_boolean.
+
+    METHODS get_instance_authorizations FOR INSTANCE AUTHORIZATION
+      keys REQUEST requested_authorizations FOR Ticket RESULT result.
+
+    METHODS analyzeWithAI FOR MODIFY
+       keys FOR ACTION Ticket~analyzeWithAI RESULT result.
+    METHODS get_global_authorizations FOR GLOBAL AUTHORIZATION
+      REQUEST requested_authorizations FOR Ticket RESULT result.
+
+    METHODS get_instance_features FOR INSTANCE FEATURES IMPORTING keys REQUEST requested_feature FOR Ticket RESULT result.
+    METHODS validateonsave FOR VALIDATE ON SAVE
+       keys FOR ticket~validateonsave.
+
+    METHODS call_python_ai
+      IMPORTING
+                iv_ticket_id       TYPE string
+                iv_employee_id     TYPE string
+                iv_question        TYPE string
+      RETURNING VALUE(rv_response) TYPE string.
+
+    METHODS execute_python IMPORTING iv_json        TYPE string
+                           RETURNING VALUE(rv_json) TYPE string.
+
+ENDCLASS.
+
+CLASS lhc_zai_i_hr_helpdesk IMPLEMENTATION.
+
+  METHOD get_instance_authorizations.
+  ENDMETHOD.
+
+  METHOD analyzeWithAI.
+
+    READ ENTITIES OF zai_i_hr_helpdesk IN LOCAL MODE
+    ENTITY Ticket
+    ALL FIELDS WITH CORRESPONDING #( keys )
+    RESULT lt_ticket.
+*
+*    if lt_ticket is NOT INITIAL.
+*    SELECT FROM zai_i_employee
+*    FIELDS
+*        EmployeeId,
+*           EmployeeName,
+*           Department,
+*           BasicSalary,
+*           \_pay-PayrollMonth,
+*           \_pay-Allowance,
+*           \_pay-TotalDeduction,
+*           \_pay-NetSalary,
+*           \_leave-
+*           FOR ALL ENTRIES IN lt_ticket
+*           where EmployeeId = @lt_ticket-EmployeeId
+*           into table @data(lt_)
+*
+*
+*    loop AT lt_ticket ASSIGNING field-symbol(<fs_ticket>).
+*    DATA(ls_ai_request) = VALUE ty_ai_request( )
+*  ENDLOOP.
+
+    LOOP AT lt_ticket ASSIGNING FIELD-SYMBOL(<fs_ticket>).
+      DATA(lv_ai_response) = call_python_ai(
+                                 iv_ticket_id   = CONV string( <fs_ticket>-TicketId )
+                                 iv_employee_id = CONV string( <fs_ticket>-EmployeeId )
+                                 iv_question    = CONV string( <fs_ticket>-Question )
+                               ).
+    ENDLOOP.
+
+    MODIFY ENTITIES OF zai_i_hr_helpdesk IN LOCAL MODE
+    ENTITY Ticket
+    UPDATE FIELDS (
+    Status
+    AiSummary
+    AiResponse
+    )
+    WITH VALUE #(
+    FOR key IN keys (
+    %tky = key-%tky
+    status = 'Analyzed'
+    AiSummary = 'Test AI analysis completed successfully'
+    AiResponse = lv_ai_response
+    )
+    ).
+
+    result = VALUE #(
+    FOR ticket IN lt_ticket
+    ( %tky = ticket-%tky
+      %param = ticket )
+    ).
+
+  ENDMETHOD.
+
+  METHOD get_global_authorizations.
+    result-%create = if_abap_behv=>auth-allowed.
+  ENDMETHOD.
+
+  METHOD call_python_ai.
+
+    DATA(lv_json) = |\{|
+    && |"ticket_id":"{ iv_ticket_id }",|
+    && |"employeeId":"{ iv_employee_id }",|
+    && |"question":"{ iv_question }",|
+    && |"analyze_type":"extract"|
+    && |\}|.
+
+    rv_response = execute_python( iv_json = lv_json ).
+
+    /ui2/cl_json=>deserialize(
+    EXPORTING
+    json        = rv_response
+    pretty_name = /ui2/cl_json=>pretty_mode-camel_case
+    CHANGING
+    data        = ls_parsed_data
+    ).
+
+    lv_pay_flag = 'N'.
+    lv_leav_flag = 'N'.
+    lv_attend_flag = 'N'.
+    DATA(lv_count) = lines( ls_parsed_data-required_data ).
+    DO lv_count TIMES.
+      IF ls_parsed_data-required_data[ sy-index ] = 'PAYROLL'.
+        lv_pay_flag = 'X'.
+      ELSEIF ls_parsed_data-required_data[ sy-index ] = 'LEAVE'.
+        lv_leav_flag = 'X'.
+      ELSEIF ls_parsed_data-required_data[ sy-index ] = 'ATTENDANCE'.
+        lv_attend_flag = 'X'.
+      ENDIF.
+    ENDDO.
+
+    DATA(ls_ai_request) = VALUE ty_ai_request(
+    analyze_type = 'analyze'
+    ticket = VALUE #( ticket_id = CONV string( iv_ticket_id )
+                      employee_id = CONV string( iv_employee_id )
+                      question = CONV string( iv_question ) )
+    context = VALUE #( intent = ls_parsed_data-intent
+                       period = VALUE #( FOR ls IN ls_parsed_data-periods (
+                         period = ls-period
+                         role = ls-role ) ) ) ).
+
+    LOOP AT ls_parsed_data-periods ASSIGNING FIELD-SYMBOL(<fs_period>).
+      SELECT SINGLE FROM zai_get_emp_data(
+                  p_period = @<fs_period>-period,
+                  p_pay = @lv_pay_flag,
+                  p_leave = @lv_leav_flag,
+                  p_attend = @lv_attend_flag )
+      FIELDS *
+      WHERE EmployeeId = @iv_employee_id
+      INTO @DATA(ls_payload).
+
+      ls_ai_request-employee = VALUE #(
+                    employee_id = ls_payload-EmployeeId
+                    department = ls_payload-Department
+                    designation = ls_payload-Designation ).
+
+      APPEND VALUE #(
+             period = ls_payload-payrollMonth
+             basic_salary = ls_payload-BasicSalary
+             allowance = ls_payload-allowance
+             gross_salary = ls_payload-grossSalary
+             tax = ls_payload-tax
+             pf = ls_payload-pf
+             lop_deduction = ls_payload-lopDeduction
+             other_deduction = ls_payload-otherDeduction
+             total_deduction = ls_payload-totalDeduction
+             net_salary = ls_payload-netSalary ) TO ls_ai_request-payroll.
+
+      APPEND VALUE #(
+              period = ls_payload-leaveMonth
+              total_days = ls_payload-totalDays
+              lop_days = ls_payload-leavelopDays ) TO ls_ai_request-leave.
+
+      APPEND VALUE #(
+              period = ls_payload-attendanceMonth
+              working_days = ls_payload-workingDays
+              present_days = ls_payload-presentDays
+              absent_days = ls_payload-absentDays
+              lop_days = ls_payload-attendlopDays ) TO ls_ai_request-attendance.
+
+    ENDLOOP.
+
+    CLEAR: lv_json, rv_response.
+    lv_json = /ui2/cl_json=>serialize(
+                data             = ls_ai_request
+                pretty_name      = /ui2/cl_json=>pretty_mode-camel_case
+              ).
+*    rv_response = execute_python( iv_json = lv_json ).
+
+    /ui2/cl_json=>deserialize(
+    EXPORTING
+    json        = execute_python( iv_json = lv_json )
+    pretty_name = /ui2/cl_json=>pretty_mode-camel_case
+    CHANGING
+    data        = ls_final_response
+    ).
+
+    rv_response = ls_final_response-analysis.
+
+  ENDMETHOD.
+
+  METHOD execute_python.
+    DATA(lv_url) = CONV string( 'https://ai-ticket-service.cfapps.us10-001.hana.ondemand.com/analyze-ticket' ).
+    TRY.
+        DATA(lo_destination) = cl_http_destination_provider=>create_by_url( i_url = lv_url ).
+      CATCH cx_http_dest_provider_error INTO DATA(cx_error).
+    ENDTRY.
+
+    TRY.
+        DATA(lo_http_client) = cl_web_http_client_manager=>create_by_http_destination( i_destination = lo_destination ).
+      CATCH cx_web_http_client_error INTO DATA(cx_web_error).
+    ENDTRY.
+
+    IF lo_http_client IS BOUND.
+      DATA(lo_request) = lo_http_client->get_http_request( ).
+    ENDIF.
+
+    lo_request->set_header_field(
+      EXPORTING
+        i_name  = 'Content-Type'
+        i_value = 'application/json'
+    ).
+
+    lo_request->set_text( iv_json ).
+
+    TRY.
+        DATA(lo_response) = lo_http_client->execute(
+                              EXPORTING
+                                i_method      = if_web_http_client=>post
+                            ).
+      CATCH cx_web_http_client_error.
+    ENDTRY.
+
+    rv_json = lo_response->get_text( ).
+  ENDMETHOD.
+
+  METHOD get_instance_features.
+  ENDMETHOD.
+
+  METHOD validateOnSave.
+
+    READ ENTITIES OF zai_i_hr_helpdesk IN LOCAL MODE
+    ENTITY Ticket
+    ALL FIELDS WITH CORRESPONDING #( keys )
+    RESULT lt_ticket.
+
+    IF lt_ticket IS NOT INITIAL.
+      SELECT FROM zf4_i_category
+      WITH PRIVILEGED ACCESS        "<------- added here to avoid warning "Unprivileged SQL"
+      FIELDS *
+      FOR ALL ENTRIES IN @lt_ticket
+      WHERE CategoryType = @lt_ticket-Category
+      INTO TABLE @DATA(lt_f4_category).
+
+      SELECT FROM zf4_i_priority
+      WITH PRIVILEGED ACCESS        "<------- added here to avoid warning "Unprivileged SQL"
+      FIELDS *
+      FOR ALL ENTRIES IN @lt_ticket
+      WHERE Priority = @lt_ticket-Priority
+      INTO TABLE @DATA(lt_f4_priority).
+    ENDIF.
+
+    LOOP AT lt_ticket ASSIGNING FIELD-SYMBOL(<fs_ticket>).
+
+      IF <fs_ticket>-EmployeeId IS INITIAL.
+        APPEND VALUE #( %tky = <fs_ticket>-%tky ) TO failed-ticket.
+
+        APPEND VALUE #( %tky = <fs_ticket>-%tky
+                        %msg = new_message_with_text(
+                                 severity = if_abap_behv_message=>severity-error
+                                 text     = 'Employee ID can not be blank' )
+                        %element-EmployeeId = if_abap_behv=>mk-on
+                                ) TO reported-ticket.
+      ENDIF.
+
+      IF <fs_ticket>-Question IS INITIAL.
+        APPEND VALUE #( %tky = <fs_ticket>-%tky ) TO failed-ticket.
+
+        APPEND VALUE #( %tky = <fs_ticket>-%tky
+                        %msg = new_message_with_text(
+                                 severity = if_abap_behv_message=>severity-error
+                                 text     = 'Question can not be blank' )
+                        %element-Question = if_abap_behv=>mk-on
+                                ) TO reported-ticket.
+      ENDIF.
+
+      IF <fs_ticket>-Category IS NOT INITIAL.
+        IF NOT line_exists( lt_f4_category[ CategoryType = <fs_ticket>-Category ] ).
+          APPEND VALUE #( %tky = <fs_ticket>-%tky ) TO failed-ticket.
+
+          APPEND VALUE #( %tky = <fs_ticket>-%tky
+                          %msg = new_message_with_text(
+                                   severity = if_abap_behv_message=>severity-error
+                                   text     = 'Select category from the dropdown' )
+                          %element-Category = if_abap_behv=>mk-on
+                                  ) TO reported-ticket.
+        ENDIF.
+      ELSE.
+        APPEND VALUE #( %tky = <fs_ticket>-%tky ) TO failed-ticket.
+
+        APPEND VALUE #( %tky = <fs_ticket>-%tky
+                        %msg = new_message_with_text(
+                                 severity = if_abap_behv_message=>severity-error
+                                 text     = 'Please enter Category from dropdown' )
+                        %element-Category = if_abap_behv=>mk-on
+                                ) TO reported-ticket.
+      ENDIF.
+
+      IF <fs_ticket>-Priority IS NOT INITIAL.
+        IF NOT line_exists( lt_f4_priority[ Priority = <fs_ticket>-Priority ] ).
+          APPEND VALUE #( %tky = <fs_ticket>-%tky ) TO failed-ticket.
+
+          APPEND VALUE #( %tky = <fs_ticket>-%tky
+                          %msg = new_message_with_text(
+                                   severity = if_abap_behv_message=>severity-error
+                                   text     = 'Select priority from the dropdown' )
+                          %element-Priority = if_abap_behv=>mk-on
+                                  ) TO reported-ticket.
+        ENDIF.
+      ELSE.
+        APPEND VALUE #( %tky = <fs_ticket>-%tky ) TO failed-ticket.
+
+        APPEND VALUE #( %tky = <fs_ticket>-%tky
+                        %msg = new_message_with_text(
+                                 severity = if_abap_behv_message=>severity-error
+                                 text     = 'Please enter Priority from dropdown' )
+                        %element-Priority = if_abap_behv=>mk-on
+                                ) TO reported-ticket.
+      ENDIF.
+    ENDLOOP.
+
+  ENDMETHOD.
+
+ENDCLASS.
