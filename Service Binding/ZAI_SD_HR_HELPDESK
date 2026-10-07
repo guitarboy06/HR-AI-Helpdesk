@@ -1,0 +1,8 @@
+@EndUserText.label: 'AI Helpdesk app service definition'
+define service ZAI_SD_HR_HElpdesk {
+  expose zc_ai_hr_helpdesk as Ticket;
+  expose zc_ai_employee    as Employee;
+  expose zc_ai_payroll     as Payroll;
+  expose zc_ai_leave       as Leave;
+  expose zc_ai_attendance  as Attendance;
+}
