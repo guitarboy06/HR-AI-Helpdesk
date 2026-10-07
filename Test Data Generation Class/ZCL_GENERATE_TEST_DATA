@@ -1,0 +1,491 @@
+CLASS zcl_generate_test_data DEFINITION
+  PUBLIC
+  FINAL
+  CREATE PUBLIC .
+
+  PUBLIC SECTION.
+    INTERFACES if_oo_adt_classrun.
+  PROTECTED SECTION.
+  PRIVATE SECTION.
+    TYPES: BEGIN OF ty_dept,
+             dept TYPE zai_employee-department,
+           END OF ty_dept,
+           BEGIN OF ty_desig,
+             desig TYPE zai_employee-designation,
+           END OF ty_desig,
+           BEGIN OF ty_employee_salary,
+             employee_id  TYPE zai_employee-employee_id,
+             basic_salary TYPE zai_employee-basic_salary,
+           END OF ty_employee_salary.
+    CLASS-DATA: lt_employee        TYPE TABLE OF zai_employee,
+                ls_employee        TYPE zai_employee,
+                lv_empid           TYPE zai_employee-employee_id,
+                lv_salary          TYPE zai_employee-basic_salary,
+                lv_timestamp       TYPE timestampl,
+                lt_dept            TYPE TABLE OF ty_dept,
+                lt_desig           TYPE TABLE OF ty_desig,
+                lt_employee_salary TYPE TABLE OF ty_employee_salary,
+                ls_employee_salary TYPE ty_employee_salary,
+                lt_payroll         TYPE TABLE OF zai_payroll,
+                ls_payroll         TYPE zai_payroll,
+                cx_error           TYPE REF TO cx_uuid_error,
+                lt_leave           TYPE TABLE OF zai_leave,
+                lt_attendance      TYPE TABLE OF zai_attendance,
+                lt_ticket          TYPE TABLE OF zai_ticket,
+                lt_modif_pay       TYPE TABLE OF zai_payroll,
+                lt_f4_category     TYPE TABLE OF zf4_category,
+                lt_f4_priority     TYPE TABLE OF zf4_priority.
+
+    CLASS-METHODS: create_emp_data IMPORTING out TYPE REF TO if_oo_adt_classrun_out,
+      create_payroll_data IMPORTING out TYPE REF TO if_oo_adt_classrun_out,
+      create_leave_data IMPORTING out TYPE REF TO if_oo_adt_classrun_out,
+      create_attendance_data IMPORTING out TYPE REF TO if_oo_adt_classrun_out,
+      create_ticket_data IMPORTING out TYPE REF TO if_oo_adt_classrun_out,
+      modify_entries IMPORTING out TYPE REF TO if_oo_adt_classrun_out,
+      create_f4_data IMPORTING out TYPE REF TO if_oo_adt_classrun_out.
+ENDCLASS.
+
+
+
+CLASS zcl_generate_test_data IMPLEMENTATION.
+
+  METHOD if_oo_adt_classrun~main.
+    GET TIME STAMP FIELD lv_timestamp.
+    out->write( 'Starting test data generation....' ).
+
+**    create_emp_data( out = out ).
+**
+**    create_payroll_data( out = out ).
+**
+**    create_leave_data( out = out ).
+**
+**    create_attendance_data( out = out ).
+**
+**    create_ticket_data( out = out ).
+
+**    modify_entries( out = out ).
+
+    create_f4_data( out = out ).
+
+    out->write( '----------------------------------------' ).
+    out->write( 'Test data generation completed.' ).
+    out->write( '----------------------------------------' ).
+
+  ENDMETHOD.
+
+  METHOD create_emp_data.
+    lt_dept = VALUE #( ( dept =  'IT' )
+                       ( dept = 'HR' )
+                       ( dept =  'Finance' )
+                       ( dept = 'Payroll' ) ).
+
+    lt_desig = VALUE #( ( desig = 'Developer' )
+                        ( desig = 'Consultant' )
+                        ( desig = 'Manager' )
+                        ( desig = 'Senior Developer' ) ).
+    DO 20 TIMES.
+      ls_employee-employee_id = cl_abap_random_int=>create(
+                                          seed = cl_abap_random=>seed( )
+                                          min  = 100
+                                          max  = 999 )->get_next( ) .
+      ls_employee-employee_name = | E_{ sy-index } |.
+      ls_employee-department = lt_dept[ cl_abap_random_int=>create(
+                                 seed = cl_abap_random=>seed( )
+                                 min  = 1
+                                 max  = lines( lt_dept )
+                               )->get_next( ) ]-dept.
+      ls_employee-designation = lt_desig[ cl_abap_random_int=>create(
+                                  seed = cl_abap_random=>seed( )
+                                  min  = 1
+                                  max  = lines( lt_desig )
+                                )->get_next( ) ]-desig.
+      ls_employee-basic_salary = cl_abap_random_int=>create(
+                                  seed = cl_abap_random=>seed( )
+                                  min  = 50000
+                                  max  = 200000
+                                )->get_next( ).
+      ls_employee-joining_date = '20200101' + cl_abap_random_int=>create(
+                                  seed = cl_abap_random=>seed( )
+                                  min  = 1
+                                  max  = 720
+                                )->get_next( ).
+
+      ls_employee-currency = 'INR'.
+      ls_employee-created_by = sy-uname.
+      ls_employee-created_on = lv_timestamp.
+      ls_employee-last_changed_by = sy-uname.
+      ls_employee-last_changed_at = lv_timestamp.
+
+      APPEND ls_employee TO lt_employee.
+
+      CLEAR: ls_employee.
+    ENDDO.
+
+    MODIFY zai_employee FROM TABLE @lt_employee.
+
+    IF sy-subrc = 0.
+      out->write( 'Employee Master records created ' ).
+    ELSE.
+      out->write( 'Employee can not be inserted' ).
+    ENDIF.
+  ENDMETHOD.
+
+  METHOD create_payroll_data.
+    SELECT
+      FROM zai_employee
+      FIELDS employee_id, basic_salary
+      INTO TABLE @lt_employee_salary.
+
+    LOOP AT lt_employee_salary INTO ls_employee_salary.
+      DO 6 TIMES.
+        ls_payroll-employee_id = ls_employee_salary-employee_id.
+        CASE sy-index.
+          WHEN 1.
+            ls_payroll-payroll_month = '2026-01'.
+          WHEN 2.
+            ls_payroll-payroll_month = '2026-02'.
+          WHEN 3.
+            ls_payroll-payroll_month = '2026-03'.
+          WHEN 4.
+            ls_payroll-payroll_month = '2026-04'.
+          WHEN 5.
+            ls_payroll-payroll_month = '2026-05'.
+          WHEN 6.
+            ls_payroll-payroll_month = '2026-06'.
+        ENDCASE.
+        TRY.
+            ls_payroll-payroll_id = cl_system_uuid=>create_uuid_x16_static( ).
+          CATCH cx_uuid_error INTO cx_error.
+        ENDTRY.
+        ls_payroll-basic_salary = ls_employee_salary-basic_salary.
+        ls_payroll-allowance = ls_payroll-basic_salary * '0.10'.
+        ls_payroll-gross_salary = ls_payroll-basic_salary + ls_payroll-allowance.
+        ls_payroll-tax = ls_payroll-gross_salary * '0.10'.
+        ls_payroll-pf = ls_payroll-basic_salary * '0.12'.
+        ls_payroll-lop_deduction = 0.
+        ls_payroll-other_deduction = 0.
+        ls_payroll-total_deduction = ls_payroll-tax + ls_payroll-pf + ls_payroll-lop_deduction + ls_payroll-other_deduction.
+        ls_payroll-net_salary = ls_payroll-gross_salary - ls_payroll-total_deduction.
+
+        ls_payroll-created_by = sy-uname.
+        ls_payroll-created_on = lv_timestamp.
+        ls_payroll-last_changed_by = sy-uname.
+        ls_payroll-last_changed_at = lv_timestamp.
+
+        APPEND ls_payroll TO lt_payroll.
+        CLEAR: ls_payroll.
+      ENDDO.
+    ENDLOOP.
+
+    MODIFY zai_payroll FROM TABLE @lt_payroll.
+    out->write(
+      |Payroll records created: { lines( lt_payroll ) }|
+    ).
+
+  ENDMETHOD.
+
+  METHOD create_leave_data.
+    TRY.
+        APPEND VALUE #(
+           client = sy-mandt
+           leave_id = cl_system_uuid=>create_uuid_x16_static( )
+           employee_id = lt_employee[ cl_abap_random_int=>create(
+                                                seed = cl_abap_random=>seed( )
+                                                min  = 1
+                                                max  = 20 )->get_next( ) ]-employee_id
+           leave_month = '2026-07'
+           leave_type = 'Leave Without Pay'
+           total_days = 5
+           lop_days = 5
+           created_by = sy-uname
+           created_on = lv_timestamp
+           last_changed_by = sy-uname
+           last_changed_at = lv_timestamp
+         ) TO lt_leave.
+      CATCH cx_uuid_error INTO cx_error.
+    ENDTRY.
+
+    TRY.
+        APPEND VALUE #(
+          client = sy-mandt
+          leave_id = cl_system_uuid=>create_uuid_x16_static( )
+          employee_id = lt_employee[ cl_abap_random_int=>create(
+                                               seed = cl_abap_random=>seed( )
+                                               min  = 1
+                                               max  = 20 )->get_next( ) ]-employee_id
+          leave_month = '2026-07'
+          leave_type = 'Annual Leave'
+          total_days = 2
+          lop_days = 0
+          created_by = sy-uname
+          created_on = lv_timestamp
+          last_changed_by = sy-uname
+          last_changed_at = lv_timestamp
+        ) TO lt_leave.
+      CATCH cx_uuid_error INTO cx_error.
+    ENDTRY.
+
+    TRY.
+        APPEND VALUE #(
+             client = sy-mandt
+             leave_id = cl_system_uuid=>create_uuid_x16_static( )
+             employee_id = lt_employee[ cl_abap_random_int=>create(
+                                                  seed = cl_abap_random=>seed( )
+                                                  min  = 1
+                                                  max  = 20 )->get_next( ) ]-employee_id
+             leave_month = '2026-07'
+             leave_type = 'Annual Leave'
+             total_days = 1
+             lop_days = 0
+             created_by = sy-uname
+             created_on = lv_timestamp
+             last_changed_by = sy-uname
+             last_changed_at = lv_timestamp
+           ) TO lt_leave.
+      CATCH cx_uuid_error INTO cx_error.
+    ENDTRY.
+
+    MODIFY zai_leave FROM TABLE @lt_leave.
+    out->write(
+      |Leave records created: { lines( lt_leave ) }|
+    ).
+
+  ENDMETHOD.
+
+  METHOD create_attendance_data.
+
+
+
+    TRY.
+        APPEND VALUE #(
+        client = sy-mandt
+        attendance_id =
+          cl_system_uuid=>create_uuid_x16_static( )
+        employee_id = lt_leave[ 2 ]-employee_id
+        attendance_month = '2026-07'
+        working_days = 23
+        present_days = 21
+        absent_days = 2
+        lop_days = 0
+        overtime_hours = '6'
+        created_by = sy-uname
+        created_on = lv_timestamp
+        last_changed_by = sy-uname
+        last_changed_at = lv_timestamp
+      ) TO lt_attendance.
+      CATCH cx_uuid_error INTO cx_error.
+    ENDTRY.
+
+    TRY.
+        APPEND VALUE #(
+        client = sy-mandt
+        attendance_id =
+          cl_system_uuid=>create_uuid_x16_static( )
+        employee_id = lt_leave[ 3 ]-employee_id
+        attendance_month = '2026-07'
+        working_days = 23
+        present_days = 23
+        absent_days = 0
+        lop_days = 0
+        overtime_hours = '20'
+        created_by = sy-uname
+        created_on = lv_timestamp
+        last_changed_by = sy-uname
+        last_changed_at = lv_timestamp
+      ) TO lt_attendance.
+      CATCH cx_uuid_error INTO cx_error.
+    ENDTRY.
+
+    MODIFY zai_attendance FROM TABLE @lt_attendance.
+    out->write(
+      |Attendance records created: { lines( lt_attendance ) }|
+    ).
+
+  ENDMETHOD.
+
+  METHOD create_ticket_data.
+    TRY.
+        APPEND VALUE #(
+           client = sy-mandt
+           ticket_id =
+             cl_system_uuid=>create_uuid_x16_static( )
+           employee_id = lt_leave[ 1 ]-employee_id
+           question =
+             'Why did my salary decrease this month?'
+           category = ''
+           priority = ''
+           ai_summary = ''
+           ai_response = ''
+           status = 'NEW'
+           created_by = sy-uname
+           created_on = lv_timestamp
+           last_changed_by = sy-uname
+           last_changed_at = lv_timestamp
+         ) TO lt_ticket.
+      CATCH cx_uuid_error INTO cx_error.
+    ENDTRY.
+    MODIFY zai_ticket FROM TABLE @lt_ticket.
+    out->write(
+      |Ticket records created: { lines( lt_ticket ) }|
+    ).
+
+
+  ENDMETHOD.
+
+  METHOD modify_entries.
+
+    "Attendance Modification
+    SELECT FROM zai_i_employee
+    FIELDS EmployeeId,
+           BasicSalary
+    INTO TABLE @DATA(lt_employee).
+    DATA(lv_year) = '2026'.
+
+    LOOP AT lt_employee INTO DATA(ls_employee).
+      DO 6 TIMES.
+        DATA(lv_month) = |{ lv_year }-0{ sy-index }|.
+        DATA(lv_present_days) = cl_abap_random_int=>create(
+                                                      seed = cl_abap_random=>seed( )
+                                                      min  = 15
+                                                      max  = 22 )->get_next( ).
+        TRY.
+            APPEND VALUE #(
+               client = sy-mandt
+               attendance_id =
+                 cl_system_uuid=>create_uuid_x16_static( )
+               employee_id = ls_employee-EmployeeId
+               attendance_month = lv_month
+               working_days = 22
+               present_days = lv_present_days
+               absent_days = 22 - lv_present_days
+               lop_days = 22 - lv_present_days
+               overtime_hours = '0'
+               created_by = sy-uname
+               created_on = lv_timestamp
+               last_changed_by = sy-uname
+               last_changed_at = lv_timestamp
+             ) TO lt_attendance.
+          CATCH cx_uuid_error INTO cx_error.
+        ENDTRY.
+      ENDDO.
+
+    ENDLOOP.
+
+    MODIFY zai_attendance FROM TABLE @lt_attendance.
+    IF sy-subrc = 0.
+      out->write(
+        |Attendance records created: { lines( lt_attendance ) }|
+      ).
+
+      "Leave Modification
+      SELECT FROM zai_i_attendance
+      FIELDS *
+      INTO TABLE @DATA(lt_attend).
+
+      LOOP AT lt_attend INTO DATA(ls_attend).
+        TRY.
+            APPEND VALUE #(
+               client = sy-mandt
+               leave_id = cl_system_uuid=>create_uuid_x16_static( )
+               employee_id = ls_attend-EmployeeId
+               leave_month = ls_attend-AttendanceMonth
+               leave_type = 'Priviledged Leave'
+               total_days = ls_attend-AbsentDays
+               lop_days = ls_attend-LopDays
+               created_by = sy-uname
+               created_on = lv_timestamp
+               last_changed_by = sy-uname
+               last_changed_at = lv_timestamp
+             ) TO lt_leave.
+          CATCH cx_uuid_error INTO cx_error.
+        ENDTRY.
+      ENDLOOP.
+      MODIFY zai_leave FROM TABLE @lt_leave.
+      IF sy-subrc = 0.
+        out->write(
+          |Leave records created: { lines( lt_leave ) }|
+        ).
+
+        "Payroll Modification
+        SELECT FROM zai_payroll AS p
+        INNER JOIN zai_employee AS e ON ( p~employee_id = e~employee_id AND p~basic_salary <> e~basic_salary )
+        FIELDS p~*
+        INTO TABLE @DATA(lt_modif_pay).
+
+        DELETE zai_payroll FROM TABLE @lt_modif_pay.
+
+        SELECT FROM zai_payroll
+        FIELDS *
+        INTO TABLE @DATA(lt_pay).
+
+        LOOP AT lt_pay ASSIGNING FIELD-SYMBOL(<fs_pay>).
+          DATA(lv_lop_days) = lt_leave[ employee_id = <fs_pay>-employee_id
+                                        leave_month = <fs_pay>-payroll_month ]-lop_days.
+          <fs_pay>-lop_deduction = <fs_pay>-basic_salary / 22 * lv_lop_days.
+          <fs_pay>-total_deduction = <fs_pay>-tax + <fs_pay>-pf + <fs_pay>-lop_deduction + <fs_pay>-other_deduction.
+          <fs_pay>-net_salary = <fs_pay>-gross_salary - <fs_pay>-total_deduction.
+
+          <fs_pay>-created_by = sy-uname.
+          <fs_pay>-created_on = lv_timestamp.
+          <fs_pay>-last_changed_by = sy-uname.
+          <fs_pay>-last_changed_at = lv_timestamp.
+        ENDLOOP.
+
+        MODIFY zai_payroll FROM TABLE @lt_pay.
+        out->write(
+          |Payroll records created: { lines( lt_pay ) }|
+        ).
+
+      ENDIF.
+    ENDIF.
+  ENDMETHOD.
+
+  METHOD create_f4_data.
+**    APPEND VALUE #(
+**             client = sy-mandt
+**             sl_no = '1'
+**             category_type = 'Payroll'
+**           ) TO lt_f4_category.
+**
+**    APPEND VALUE #(
+**      client = sy-mandt
+**      sl_no = '2'
+**      category_type = 'Leave'
+**    ) TO lt_f4_category.
+**
+**    APPEND VALUE #(
+**      client = sy-mandt
+**      sl_no = '3'
+**      category_type = 'Attendance'
+**    ) TO lt_f4_category.
+**
+**    INSERT zf4_category FROM TABLE @lt_f4_category.
+**    out->write(
+**      |Category records created: { lines( lt_f4_category ) }|
+**    ).
+
+    APPEND VALUE #(
+                 client = sy-mandt
+                 sl_no = 'H'
+                 priority = 'High'
+               ) TO lt_f4_priority.
+
+    APPEND VALUE #(
+      client = sy-mandt
+      sl_no = 'M'
+      priority = 'Medium'
+    ) TO lt_f4_priority.
+
+    APPEND VALUE #(
+      client = sy-mandt
+      sl_no = 'L'
+      priority = 'Low'
+    ) TO lt_f4_priority.
+
+    INSERT zf4_priority FROM TABLE @lt_f4_priority.
+    out->write(
+      |Priority records created: { lines( lt_f4_priority ) }|
+    ).
+  ENDMETHOD.
+
+ENDCLASS.
